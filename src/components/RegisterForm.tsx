@@ -26,7 +26,7 @@ export function RegisterForm() {
       }
       setLoading(false);
     } else {
-      router.push("/login?registered=true");
+      router.push("/?registered=true");
     }
   }
 
@@ -72,7 +72,7 @@ export function RegisterForm() {
       </form>
       <p className="mt-4 text-center text-sm text-gray-600">
         Already have an account?{" "}
-        <Link href="/login" className="text-blue-600 hover:text-blue-500">
+        <Link href="/" className="text-blue-600 hover:text-blue-500">
           Login here
         </Link>
       </p>

@@ -37,10 +37,9 @@ export function Navbar() {
               </>
             ) : (
               <>
-                <Link href="/login" className="text-gray-700 hover:text-blue-600 font-medium">
-                  Login
-                </Link>
-                <Link
+                              <Link href="/" className="text-gray-700 hover:text-blue-600 font-medium">
+                                Login
+                              </Link>                <Link
                   href="/register"
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
                 >
