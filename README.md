@@ -37,12 +37,36 @@ NEXTAUTH_SECRET="your-secret-key-here"
 ```
 *Note: If your password contains special characters like `#`, URL-encode them (e.g., `#` becomes `%23`).*
 
-### 3. Install Dependencies
+### 3. Docker Setup (Alternative)
+If you prefer running the entire stack (App + Database) using Docker:
+
+**Build and start all services:**
+```bash
+docker compose up -d --build
+```
+
+**View logs:**
+```bash
+docker compose logs -f
+```
+
+**Stop all services:**
+```bash
+docker compose down
+```
+
+**Update Database Schema (First time or after changes):**
+```bash
+docker compose exec app npx prisma db push
+```
+
+### 4. Install Dependencies (Local Development)
+If running the app locally (not via Docker):
 ```bash
 npm install
 ```
 
-### 4. Initialize Database
+### 5. Initialize Database
 If running via Docker (Recommended):
 ```bash
 docker compose exec app npx prisma db push
@@ -53,7 +77,8 @@ If running locally:
 npx prisma@6 db push
 ```
 
-### 5. Run the Application
+### 6. Run the Application
+If running locally:
 ```bash
 npm run dev
 ```

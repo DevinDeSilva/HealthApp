@@ -255,24 +255,55 @@ export function HealthCharts({
   showOnly?: "pressure" | "sugar" | "weight";
 }) {
   const [viewMode, setViewMode] = useState<ViewMode>("raw");
+  const [sugarFilter, setSugarFilter] = useState<string>("all");
+
+  const filteredSugarData = useMemo(() => {
+    if (sugarFilter === "all") return sugarData;
+    return sugarData.filter(d => d.type === sugarFilter);
+  }, [sugarData, sugarFilter]);
 
   const handleDownload = (type: string) => {
-    window.location.href = `/api/health/export?type=${type}`;
+    let url = `/api/health/export?type=${type}`;
+    if (type === "sugar" && sugarFilter !== "all") {
+      url += `&sugarFilter=${sugarFilter}`;
+    }
+    window.location.href = url;
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        {viewMode === "raw" && (!showOnly || showOnly === "sugar") && (
-          <div className="flex flex-wrap gap-3">
-            {Object.entries(SUGAR_COLORS).map(([type, color]) => (
-              <div key={type} className="flex items-center text-xs text-gray-500">
-                <span className="w-3 h-3 rounded-full mr-1" style={{ backgroundColor: color }}></span>
-                <span className="capitalize">{type.replace("_", " ")}</span>
-              </div>
-            ))}
-          </div>
-        )}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4">
+          {viewMode === "raw" && (!showOnly || showOnly === "sugar") && sugarFilter === "all" && (
+            <div className="flex flex-wrap gap-3">
+              {Object.entries(SUGAR_COLORS).map(([type, color]) => (
+                <div key={type} className="flex items-center text-xs text-gray-500">
+                  <span className="w-3 h-3 rounded-full mr-1" style={{ backgroundColor: color }}></span>
+                  <span className="capitalize">{type.replace("_", " ")}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {(!showOnly || showOnly === "sugar") && (
+            <div className="flex items-center bg-white border border-gray-200 rounded-md px-2 py-1 shadow-sm">
+              <label htmlFor="sugar-filter" className="text-[10px] font-bold text-gray-400 uppercase mr-2">Sugar Filter:</label>
+              <select 
+                id="sugar-filter"
+                value={sugarFilter}
+                onChange={(e) => setSugarFilter(e.target.value)}
+                className="text-xs font-medium text-gray-600 bg-transparent focus:outline-none"
+              >
+                <option value="all">All Types</option>
+                <option value="fasting">Fasting</option>
+                <option value="before_meal">Before Meal</option>
+                <option value="after_meal">After Meal</option>
+                <option value="random">Random</option>
+              </select>
+            </div>
+          )}
+        </div>
+
         <div className="flex bg-gray-100 rounded-md p-1 ml-auto">
           <button
             onClick={() => setViewMode("raw")}
@@ -316,12 +347,12 @@ export function HealthCharts({
         )}
         {(!showOnly || showOnly === "sugar") && (
           <HealthChart
-            title="Blood Sugar"
-            data={sugarData}
+            title={`Blood Sugar ${sugarFilter !== "all" ? `(${sugarFilter.replace("_", " ")})` : ""}`}
+            data={filteredSugarData}
             viewMode={viewMode}
             customDot={true}
             onDownload={() => handleDownload("sugar")}
-            dataKeys={[{ key: "value", color: "#10b981", name: "mg/dL" }]}
+            dataKeys={[{ key: "value", color: sugarFilter !== "all" ? SUGAR_COLORS[sugarFilter] : "#10b981", name: "mg/dL" }]}
           />
         )}
         {(!showOnly || showOnly === "weight") && (

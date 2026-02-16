@@ -12,12 +12,13 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const type = searchParams.get("type"); // pressure, sugar, or weight
+  const sugarFilter = searchParams.get("sugarFilter");
 
   if (!type) {
     return NextResponse.json({ error: "Type is required" }, { status: 400 });
   }
 
-  const whereClause = {
+  const whereClause: any = {
     userId: session.user.id,
   };
 
@@ -39,6 +40,10 @@ export async function GET(request: Request) {
       ];
       csvData = readings;
     } else if (type === "sugar") {
+      if (sugarFilter && sugarFilter !== "all") {
+        whereClause.type = sugarFilter;
+        filename = `health_data_sugar_${sugarFilter}_${new Date().toISOString().slice(0, 10)}.csv`;
+      }
       const readings = await prisma.sugarReading.findMany({
         where: whereClause,
         orderBy: { timestamp: "asc" },
