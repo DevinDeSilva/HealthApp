@@ -4,13 +4,18 @@ import { useState, useMemo } from "react";
 import {
   LineChart,
   Line,
+  BarChart,
+  Bar,
+  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
   Legend,
+  ReferenceLine,
 } from "recharts";
+import { Download } from "lucide-react";
 
 type ViewMode = "raw" | "weekly" | "monthly" | "yearly";
 
@@ -20,6 +25,7 @@ interface ChartProps {
   dataKeys: { key: string; color: string; name: string }[];
   viewMode: ViewMode;
   customDot?: boolean;
+  onDownload?: () => void;
 }
 
 const SUGAR_COLORS: { [key: string]: string } = {
@@ -57,7 +63,7 @@ function getWeekNumber(d: Date) {
   return `${d.getUTCFullYear()}-W${weekNo}`;
 }
 
-function HealthChart({ data, title, dataKeys, viewMode, customDot }: ChartProps) {
+function HealthChart({ data, title, dataKeys, viewMode, customDot, onDownload }: ChartProps) {
   const processedData = useMemo(() => {
     if (viewMode === "raw") return data;
 
@@ -95,7 +101,18 @@ function HealthChart({ data, title, dataKeys, viewMode, customDot }: ChartProps)
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md h-[450px]">
-      <h3 className="text-lg font-semibold mb-4 text-gray-800">{title}</h3>
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
+        {onDownload && (
+          <button
+            onClick={onDownload}
+            className="flex items-center px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 hover:bg-blue-50 hover:text-blue-600 border border-gray-200 hover:border-blue-200 rounded-md transition-all shadow-sm"
+          >
+            <Download className="h-3.5 w-3.5 mr-1.5" />
+            Download CSV
+          </button>
+        )}
+      </div>
       <div className="h-[350px]">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={processedData}>
@@ -146,6 +163,86 @@ function HealthChart({ data, title, dataKeys, viewMode, customDot }: ChartProps)
   );
 }
 
+interface WeightReading {
+  timestamp: string | Date;
+  value: number;
+}
+
+function WeightProgressChart({ data }: { data: WeightReading[] }) {
+  const progressData = useMemo(() => {
+    if (!data || data.length === 0) return [];
+
+    // 1. Group by week
+    const groups: { [key: string]: { items: any[]; timestamp: Date } } = {};
+    data.forEach((item) => {
+      const date = new Date(item.timestamp);
+      const key = getWeekNumber(date);
+      if (!groups[key]) {
+        groups[key] = { items: [], timestamp: date };
+      }
+      groups[key].items.push(item);
+    });
+
+    // 2. Calculate weekly averages
+    const weeklyAverages = Object.keys(groups).map((key) => {
+      const group = groups[key];
+      const sum = group.items.reduce((acc, curr) => acc + (curr.value || 0), 0);
+      return {
+        timestamp: group.timestamp,
+        avg: sum / group.items.length,
+      };
+    }).sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+
+    // 3. Calculate difference between consecutive weeks (rate of change)
+    return weeklyAverages.map((curr, i, arr) => {
+      if (i === 0) return null;
+      const prev = arr[i - 1];
+      const change = curr.avg - prev.avg;
+      return {
+        timestamp: curr.timestamp.toISOString(),
+        change: Math.round(change * 100) / 100, // Two decimal places for better precision
+      };
+    }).filter((item): item is { timestamp: string; change: number } => item !== null);
+  }, [data]);
+
+  if (progressData.length === 0) return null;
+
+  return (
+    <div className="bg-white p-6 rounded-lg shadow-md h-[450px]">
+      <h3 className="text-lg font-semibold mb-4 text-gray-800">Weekly Weight Change (kg)</h3>
+      <p className="text-xs text-gray-500 mb-4">Positive means weight gain, negative means weight loss compared to previous week.</p>
+      <div className="h-[320px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={progressData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis
+              dataKey="timestamp"
+              tickFormatter={(tick) => {
+                const date = new Date(tick);
+                return `W${getWeekNumber(date).split('-W')[1]}`;
+              }}
+            />
+            <YAxis />
+            <Tooltip
+              labelFormatter={(label) => `Week of ${new Date(label).toLocaleDateString()}`}
+              formatter={(value: any) => [`${value > 0 ? '+' : ''}${value} kg`, "Weekly Change"]}
+            />
+            <ReferenceLine y={0} stroke="#000" />
+            <Bar dataKey="change" radius={[4, 4, 0, 0]}>
+              {progressData.map((entry, index) => (
+                <Cell 
+                  key={`cell-${index}`} 
+                  fill={entry.change > 0 ? "#ef4444" : "#10b981"} 
+                />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
 export function HealthCharts({ 
   pressureData, 
   sugarData, 
@@ -158,6 +255,10 @@ export function HealthCharts({
   showOnly?: "pressure" | "sugar" | "weight";
 }) {
   const [viewMode, setViewMode] = useState<ViewMode>("raw");
+
+  const handleDownload = (type: string) => {
+    window.location.href = `/api/health/export?type=${type}`;
+  };
 
   return (
     <div className="space-y-6">
@@ -206,6 +307,7 @@ export function HealthCharts({
             title="Blood Pressure"
             data={pressureData}
             viewMode={viewMode}
+            onDownload={() => handleDownload("pressure")}
             dataKeys={[
               { key: "systolic", color: "#3b82f6", name: "Systolic" },
               { key: "diastolic", color: "#ef4444", name: "Diastolic" },
@@ -218,16 +320,21 @@ export function HealthCharts({
             data={sugarData}
             viewMode={viewMode}
             customDot={true}
+            onDownload={() => handleDownload("sugar")}
             dataKeys={[{ key: "value", color: "#10b981", name: "mg/dL" }]}
           />
         )}
         {(!showOnly || showOnly === "weight") && (
-          <HealthChart
-            title="Weight Trend"
-            data={weightData}
-            viewMode={viewMode}
-            dataKeys={[{ key: "value", color: "#8b5cf6", name: "Weight (kg)" }]}
-          />
+          <>
+            <HealthChart
+              title="Weight Trend"
+              data={weightData}
+              viewMode={viewMode}
+              onDownload={() => handleDownload("weight")}
+              dataKeys={[{ key: "value", color: "#8b5cf6", name: "Weight (kg)" }]}
+            />
+            <WeightProgressChart data={weightData} />
+          </>
         )}
       </div>
     </div>

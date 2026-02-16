@@ -11,82 +11,59 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url);
-  const startDate = searchParams.get("start");
-  const endDate = searchParams.get("end");
-  const type = searchParams.get("type"); // pressure, sugar, weight, or all
+  const type = searchParams.get("type"); // pressure, sugar, or weight
 
-  if (!startDate || !endDate) {
-    return NextResponse.json({ error: "Date range required" }, { status: 400 });
+  if (!type) {
+    return NextResponse.json({ error: "Type is required" }, { status: 400 });
   }
 
   const whereClause = {
     userId: session.user.id,
-    timestamp: {
-      gte: new Date(startDate),
-      lte: new Date(endDate),
-    },
   };
 
-  let csvData: any[] = [];
-  let fields: string[] = [];
-  let filename = `health_records_${startDate}_to_${endDate}.csv`;
-
   try {
-    if (type === "pressure" || type === "all") {
+    let csvData: any[] = [];
+    let fields: any[] = [];
+    let filename = `health_data_${type}_${new Date().toISOString().slice(0, 10)}.csv`;
+
+    if (type === "pressure") {
       const readings = await prisma.pressureReading.findMany({
         where: whereClause,
         orderBy: { timestamp: "asc" },
       });
-      csvData = csvData.concat(readings.map(r => ({
-        Type: "Blood Pressure",
-        Date: r.timestamp.toLocaleString(),
-        Value1: r.systolic,
-        Label1: "Systolic",
-        Value2: r.diastolic,
-        Label2: "Diastolic",
-        Value3: r.pulse || "",
-        Label3: "Pulse"
-      })));
-    }
-
-    if (type === "sugar" || type === "all") {
+      fields = [
+        { label: "Date", value: (row: any) => new Date(row.timestamp).toLocaleString() },
+        { label: "Systolic (mmHg)", value: "systolic" },
+        { label: "Diastolic (mmHg)", value: "diastolic" },
+        { label: "Pulse (bpm)", value: "pulse" }
+      ];
+      csvData = readings;
+    } else if (type === "sugar") {
       const readings = await prisma.sugarReading.findMany({
         where: whereClause,
         orderBy: { timestamp: "asc" },
       });
-      csvData = csvData.concat(readings.map(r => ({
-        Type: `Blood Sugar (${r.type})`,
-        Date: r.timestamp.toLocaleString(),
-        Value1: r.value,
-        Label1: "mg/dL",
-        Value2: "",
-        Label2: "",
-        Value3: "",
-        Label3: ""
-      })));
-    }
-
-    if (type === "weight" || type === "all") {
+      fields = [
+        { label: "Date", value: (row: any) => new Date(row.timestamp).toLocaleString() },
+        { label: "Value (mg/dL)", value: "value" },
+        { label: "Type", value: (row: any) => row.type.replace("_", " ") }
+      ];
+      csvData = readings;
+    } else if (type === "weight") {
       const readings = await prisma.weightReading.findMany({
         where: whereClause,
         orderBy: { timestamp: "asc" },
       });
-      csvData = csvData.concat(readings.map(r => ({
-        Type: "Weight",
-        Date: r.timestamp.toLocaleString(),
-        Value1: r.value,
-        Label1: "kg",
-        Value2: "",
-        Label2: "",
-        Value3: "",
-        Label3: ""
-      })));
+      fields = [
+        { label: "Date", value: (row: any) => new Date(row.timestamp).toLocaleString() },
+        { label: "Weight (kg)", value: "value" }
+      ];
+      csvData = readings;
+    } else {
+      return NextResponse.json({ error: "Invalid type" }, { status: 400 });
     }
 
-    // Sort combined data by date
-    csvData.sort((a, b) => new Date(a.Date).getTime() - new Date(b.Date).getTime());
-
-    const json2csvParser = new Parser();
+    const json2csvParser = new Parser({ fields });
     const csv = json2csvParser.parse(csvData);
 
     return new Response(csv, {

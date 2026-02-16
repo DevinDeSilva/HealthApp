@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { HealthLoggingForm } from "@/components/HealthLoggingForm";
 import { HealthCharts } from "@/components/HealthCharts";
-import { DataExport } from "@/components/DataExport";
 import { LayoutDashboard, PenLine, Activity, Droplets, Scale, History } from "lucide-react";
 
 export default function DashboardPage() {
@@ -175,14 +174,6 @@ export default function DashboardPage() {
                     No health data recorded yet.
                   </div>
                 )}
-              </div>
-
-              {/* Data Export Section */}
-              <div className="border-t border-gray-200 pt-12">
-                <div className="max-w-3xl">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-6">Data Management</h2>
-                  <DataExport />
-                </div>
               </div>
             </div>
           )}
