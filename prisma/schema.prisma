@@ -1,0 +1,56 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String            @id @default(cuid())
+  name            String?
+  email           String?           @unique
+  password        String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  pressureReadings PressureReading[]
+  sugarReadings    SugarReading[]
+  weightReadings   WeightReading[]
+}
+
+model PressureReading {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  systolic  Int
+  diastolic Int
+  pulse     Int?
+  timestamp DateTime @default(now())
+
+  @@index([userId])
+}
+
+model SugarReading {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  value     Float
+  type      String   // e.g., "fasting", "after_meal", "random"
+  timestamp DateTime @default(now())
+
+  @@index([userId])
+}
+
+model WeightReading {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  value     Float
+  timestamp DateTime @default(now())
+
+  @@index([userId])
+}

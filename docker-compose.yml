@@ -1,0 +1,26 @@
+services:
+  db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: healthuser
+      POSTGRES_PASSWORD: Sausilva0618
+      POSTGRES_DB: healthapp
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://healthuser:Sausilva0618@db:5432/healthapp?schema=public
+      - NEXTAUTH_URL=http://localhost:3000
+      - NEXTAUTH_SECRET=Sausilva0618#
+    depends_on:
+      - db

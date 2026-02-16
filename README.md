@@ -1,36 +1,74 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# HealthTrack Pro
 
-## Getting Started
+A modern, full-stack health tracking application built with Next.js, PostgreSQL, and Prisma.
 
-First, run the development server:
+## Features
+- **Secure Authentication**: User registration and login.
+- **Health Logging**: Track Blood Pressure, Blood Sugar, and Weight.
+- **Data Visualization**: Interactive charts showing trends over time.
+- **Responsive Design**: Mobile-friendly interface.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Tech Stack
+- **Framework**: [Next.js 15+](https://nextjs.org/) (App Router)
+- **Database**: [PostgreSQL](https://www.postgresql.org/)
+- **ORM**: [Prisma](https://www.prisma.io/)
+- **Auth**: [NextAuth.js](https://next-auth.js.org/)
+- **Charts**: [Recharts](https://recharts.org/)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
+
+## Setup & Installation
+
+### 1. Database Setup
+Ensure PostgreSQL is installed and running. Create a database and user:
+```sql
+CREATE DATABASE healthapp;
+CREATE USER healthuser WITH ENCRYPTED PASSWORD 'your_password';
+GRANT ALL PRIVILEGES ON DATABASE healthapp TO healthuser;
+\c healthapp
+ALTER SCHEMA public OWNER TO healthuser;
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Environment Configuration
+Create a `.env` file in the root directory:
+```env
+DATABASE_URL="postgresql://healthuser:your_password@localhost:5432/healthapp?schema=public"
+NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_SECRET="your-secret-key-here"
+```
+*Note: If your password contains special characters like `#`, URL-encode them (e.g., `#` becomes `%23`).*
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 3. Install Dependencies
+```bash
+npm install
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 4. Initialize Database
+If running via Docker (Recommended):
+```bash
+docker compose exec app npx prisma db push
+```
 
-## Learn More
+If running locally:
+```bash
+npx prisma@6 db push
+```
 
-To learn more about Next.js, take a look at the following resources:
+### 5. Run the Application
+```bash
+npm run dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Remote Access (SSH Tunneling)
+To access the application running on the server `desild@spark-5458` from your local browser, run this command **on your local machine**:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+ssh -L 3000:localhost:3000 desild@spark-5458
+```
 
-## Deploy on Vercel
+Once the tunnel is established, visit [http://localhost:3000](http://localhost:3000) in your web browser.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Development
+To generate the Prisma client after schema changes:
+```bash
+npx prisma generate
+```
