@@ -46,11 +46,14 @@ model SugarReading {
 }
 
 model WeightReading {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  value     Float
-  timestamp DateTime @default(now())
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  value         Float    // Total weight in kg
+  fatMass       Float?   // Fat mass in kg
+  fatPercentage Float?   // Fat percentage
+  muscleMass    Float?   // Muscle mass in kg
+  timestamp     DateTime @default(now())
 
   @@index([userId])
 }
